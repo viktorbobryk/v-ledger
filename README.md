@@ -9,7 +9,7 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). The app starts without Supabase keys; add them in `.env.local` from your [Supabase](https://supabase.com/dashboard) project when you connect the database.
+Open [http://localhost:3000](http://localhost:3000). Copy `.env.example` to `.env.local` and paste the project URL plus publishable key from the [Supabase dashboard](https://supabase.com/dashboard). The home page pings Auth health to confirm the project is reachable.
 
 You can start editing the page by modifying `src/app/page.tsx`.
 
