@@ -1,1 +1,24 @@
 @import "tailwindcss";
+
+@theme {
+  --color-ink: #0c0f14;
+  --color-paper: #151a22;
+  --color-line: #2c3442;
+  --color-mist: #d7dee8;
+  --color-fog: #8b96a8;
+  --color-gold: #d4a017;
+  --color-loss: #f07171;
+  --color-gain: #3ecf8e;
+  --font-sans: var(--font-ibm-plex-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-ibm-plex-mono), ui-monospace, monospace;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  background: var(--color-ink);
+  color: var(--color-mist);
+}
