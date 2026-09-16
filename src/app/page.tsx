@@ -1,18 +1,19 @@
 import { redirect } from "next/navigation";
 import { signOut } from "@/app/actions/auth";
+import { PlaybookCard } from "@/components/playbook-card";
 import { getAuthClaims } from "@/lib/auth/session";
-import { pingSupabase } from "@/lib/supabase/ping";
+import { listPlaybooks } from "@/lib/playbooks/list";
 
 export default async function Home() {
   const claims = await getAuthClaims();
 
-  if (!claims) {
+  if (!claims || typeof claims.sub !== "string") {
     redirect("/login");
   }
 
-  const supabase = await pingSupabase();
   const email =
     typeof claims.email === "string" ? claims.email : "signed in";
+  const { playbooks, error } = await listPlaybooks(claims.sub);
 
   return (
     <main className="mx-auto max-w-3xl p-6">
@@ -30,15 +31,23 @@ export default async function Home() {
           </form>
         </div>
       </header>
-      <p className="mt-6 text-sm text-fog">
-        {supabase.status === "ok" ? (
-          <>Supabase connected: {supabase.host}</>
-        ) : supabase.status === "unconfigured" ? (
-          <>Supabase is not configured. Add keys to .env.local</>
+      <section className="mt-8">
+        <h1 className="text-lg font-medium text-mist">Playbooks</h1>
+        <p className="mt-1 text-sm text-fog">
+          The four setups from the TradingView desk.
+        </p>
+        {error ? (
+          <p className="mt-4 rounded-md border border-loss/30 bg-loss/10 px-3 py-2 text-sm text-loss">
+            {error}
+          </p>
         ) : (
-          <>Supabase error: {supabase.message}</>
+          <div className="mt-5 grid gap-4 sm:grid-cols-2">
+            {playbooks.map((playbook) => (
+              <PlaybookCard key={playbook.id} playbook={playbook} />
+            ))}
+          </div>
         )}
-      </p>
+      </section>
     </main>
   );
 }

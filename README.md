@@ -9,7 +9,7 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). Copy `.env.example` to `.env.local` and paste the project URL plus publishable key from the [Supabase dashboard](https://supabase.com/dashboard). Set the Auth site URL to `http://localhost:3000`. Email/password login is on `/login`; if confirmation is enabled, confirm from the email or turn it off under Authentication → Providers → Email.
+Open [http://localhost:3000](http://localhost:3000). Copy `.env.example` to `.env.local` and paste the project URL plus publishable key from the [Supabase dashboard](https://supabase.com/dashboard). Set the Auth site URL to `http://localhost:3000`. Email/password login is on `/login`; if confirmation is enabled, confirm from the email or turn it off under Authentication → Providers → Email. Run `supabase/migrations/20260916185900_create_playbooks.sql` once in the SQL Editor so playbooks can be stored.
 
 You can start editing the page by modifying `src/app/page.tsx`.
 
