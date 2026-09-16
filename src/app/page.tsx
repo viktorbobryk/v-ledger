@@ -1,8 +1,12 @@
 import { redirect } from "next/navigation";
 import { signOut } from "@/app/actions/auth";
 import { PlaybookCard } from "@/components/playbook-card";
+import { SessionStrip } from "@/components/session-strip";
+import { TradesList } from "@/components/trades-list";
 import { getAuthClaims } from "@/lib/auth/session";
 import { listPlaybooks } from "@/lib/playbooks/list";
+import { ensureTodaySession } from "@/lib/sessions/ensure-today";
+import { listSessionTrades } from "@/lib/trades/list";
 
 export default async function Home() {
   const claims = await getAuthClaims();
@@ -13,7 +17,14 @@ export default async function Home() {
 
   const email =
     typeof claims.email === "string" ? claims.email : "signed in";
-  const { playbooks, error } = await listPlaybooks(claims.sub);
+  const [{ playbooks, error: playbooksError }, { session, error: sessionError }] =
+    await Promise.all([
+      listPlaybooks(claims.sub),
+      ensureTodaySession(claims.sub),
+    ]);
+  const { trades, error: tradesError } = session
+    ? await listSessionTrades(session.id)
+    : { trades: [], error: sessionError };
 
   return (
     <main className="mx-auto max-w-3xl p-6">
@@ -31,14 +42,43 @@ export default async function Home() {
           </form>
         </div>
       </header>
+
       <section className="mt-8">
-        <h1 className="text-lg font-medium text-mist">Playbooks</h1>
+        <h1 className="text-lg font-medium text-mist">Today</h1>
+        <p className="mt-1 text-sm text-fog">
+          Risk for the day. Pause after three losses.
+        </p>
+        {sessionError || !session ? (
+          <p className="mt-4 rounded-md border border-loss/30 bg-loss/10 px-3 py-2 text-sm text-loss">
+            {sessionError ?? "No session for today."}
+          </p>
+        ) : (
+          <div className="mt-5">
+            <SessionStrip session={session} />
+          </div>
+        )}
+      </section>
+
+      <section className="mt-10">
+        <h2 className="text-lg font-medium text-mist">Tickets</h2>
+        <p className="mt-1 text-sm text-fog">Planned vs filled for this session.</p>
+        {tradesError ? (
+          <p className="mt-4 rounded-md border border-loss/30 bg-loss/10 px-3 py-2 text-sm text-loss">
+            {tradesError}
+          </p>
+        ) : (
+          <TradesList trades={trades} />
+        )}
+      </section>
+
+      <section className="mt-10">
+        <h2 className="text-lg font-medium text-mist">Playbooks</h2>
         <p className="mt-1 text-sm text-fog">
           The four setups from the TradingView desk.
         </p>
-        {error ? (
+        {playbooksError ? (
           <p className="mt-4 rounded-md border border-loss/30 bg-loss/10 px-3 py-2 text-sm text-loss">
-            {error}
+            {playbooksError}
           </p>
         ) : (
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
