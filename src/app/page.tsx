@@ -49,6 +49,12 @@ export default async function Home({ searchParams }: HomeProps) {
         </div>
       </header>
 
+      {error ? (
+        <p className="mt-6 rounded-md border border-loss/30 bg-loss/10 px-3 py-2 text-sm text-loss">
+          {error}
+        </p>
+      ) : null}
+
       <section className="mt-8">
         <h1 className="text-lg font-medium text-mist">Today</h1>
         <p className="mt-1 text-sm text-fog">
@@ -68,13 +74,9 @@ export default async function Home({ searchParams }: HomeProps) {
       <section className="mt-10">
         <h2 className="text-lg font-medium text-mist">Tickets</h2>
         <p className="mt-1 text-sm text-fog">
-          Lock the plan before the click. Fill is optional.
+          Lock the plan. Filled entry is the planned price. Skip if price never
+          tagged it.
         </p>
-        {error ? (
-          <p className="mt-4 rounded-md border border-loss/30 bg-loss/10 px-3 py-2 text-sm text-loss">
-            {error}
-          </p>
-        ) : null}
         {session ? (
           <TicketForm sessionId={session.id} playbooks={playbooks} />
         ) : null}

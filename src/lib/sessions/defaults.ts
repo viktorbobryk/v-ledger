@@ -24,6 +24,25 @@ export function utcToday() {
   return new Date().toISOString().slice(0, 10);
 }
 
+export function sessionRiskError(
+  deposit: number | null,
+  riskPercent: number | null,
+) {
+  if (deposit === null || deposit <= 0) {
+    return "Deposit must be greater than 0.";
+  }
+
+  if (riskPercent === null || riskPercent <= 0) {
+    return "Risk must be greater than 0.";
+  }
+
+  if (riskPercent > 100) {
+    return "Risk cannot exceed 100%.";
+  }
+
+  return null;
+}
+
 export function sessionStatus(
   consecutiveLosses: number,
   stored: SessionStatus,

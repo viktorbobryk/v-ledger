@@ -1,6 +1,13 @@
+"use client";
+
+import { useRef, useState } from "react";
 import type { Playbook } from "@/lib/playbooks/defaults";
 import { createTicket } from "@/app/actions/trades";
-import { TRADE_INSTRUMENTS } from "@/lib/trades/types";
+import {
+  plannedStopError,
+  toNumber,
+  TRADE_INSTRUMENTS,
+} from "@/lib/trades/types";
 
 const fieldClassName =
   "mt-1.5 w-full rounded-md border border-line bg-ink px-3 py-2 text-sm text-mist outline-none placeholder:text-fog/70 focus:border-gold focus:ring-2 focus:ring-gold/30";
@@ -10,7 +17,30 @@ type TicketFormProps = {
   playbooks: Playbook[];
 };
 
+function formNumber(data: FormData, key: string) {
+  const value = data.get(key);
+  return typeof value === "string" ? toNumber(value) : null;
+}
+
+function stopErrorFromForm(form: HTMLFormElement) {
+  const data = new FormData(form);
+  const side = data.get("side");
+
+  if (side !== "long" && side !== "short") {
+    return null;
+  }
+
+  return plannedStopError(
+    side,
+    formNumber(data, "planned_entry"),
+    formNumber(data, "planned_sl"),
+  );
+}
+
 export function TicketForm({ sessionId, playbooks }: TicketFormProps) {
+  const stopRef = useRef<HTMLInputElement>(null);
+  const [stopError, setStopError] = useState<string | null>(null);
+
   if (playbooks.length === 0) {
     return (
       <p className="mt-4 text-sm text-fog">
@@ -19,9 +49,17 @@ export function TicketForm({ sessionId, playbooks }: TicketFormProps) {
     );
   }
 
+  function syncStopValidity(form: HTMLFormElement) {
+    const error = stopErrorFromForm(form);
+    setStopError(error);
+    stopRef.current?.setCustomValidity(error ?? "");
+  }
+
   return (
     <form
       action={createTicket}
+      onInput={(event) => syncStopValidity(event.currentTarget)}
+      onChange={(event) => syncStopValidity(event.currentTarget)}
       className="mt-5 rounded-xl border border-line bg-paper p-5"
     >
       <input type="hidden" name="session_id" value={sessionId} />
@@ -69,13 +107,22 @@ export function TicketForm({ sessionId, playbooks }: TicketFormProps) {
         <label className="text-sm text-fog">
           Planned SL
           <input
+            ref={stopRef}
             name="planned_sl"
             type="number"
             required
             step="any"
             inputMode="decimal"
-            className={fieldClassName}
+            aria-invalid={stopError ? true : undefined}
+            className={
+              stopError
+                ? `${fieldClassName} border-loss focus:border-loss focus:ring-loss/30`
+                : fieldClassName
+            }
           />
+          {stopError ? (
+            <span className="mt-1.5 block text-xs text-loss">{stopError}</span>
+          ) : null}
         </label>
         <label className="text-sm text-fog">
           Planned TP
@@ -84,30 +131,6 @@ export function TicketForm({ sessionId, playbooks }: TicketFormProps) {
             type="number"
             step="any"
             inputMode="decimal"
-            className={fieldClassName}
-          />
-        </label>
-      </div>
-      <div className="mt-4 grid gap-4 sm:grid-cols-2">
-        <label className="text-sm text-fog">
-          Filled entry
-          <input
-            name="filled_entry"
-            type="number"
-            step="any"
-            inputMode="decimal"
-            placeholder="Leave empty if not filled"
-            className={fieldClassName}
-          />
-        </label>
-        <label className="text-sm text-fog">
-          Filled exit
-          <input
-            name="filled_exit"
-            type="number"
-            step="any"
-            inputMode="decimal"
-            placeholder="Optional"
             className={fieldClassName}
           />
         </label>

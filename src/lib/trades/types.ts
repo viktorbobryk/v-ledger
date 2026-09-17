@@ -19,6 +19,68 @@ export function tradeStatusFromFills(
   return "planned";
 }
 
+export function toNumber(value: number | string | null | undefined) {
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+export function plannedStopError(
+  side: TradeSide,
+  entry: number | null,
+  stop: number | null,
+) {
+  if (entry === null || stop === null) {
+    return null;
+  }
+
+  if (side === "long" && stop >= entry) {
+    return "For a long, stop loss must be below entry.";
+  }
+
+  if (side === "short" && stop <= entry) {
+    return "For a short, stop loss must be above entry.";
+  }
+
+  return null;
+}
+
+export function realizedR(trade: {
+  side: TradeSide;
+  planned_entry: number | string | null;
+  planned_sl: number | string | null;
+  filled_entry: number | string | null;
+  filled_exit: number | string | null;
+}) {
+  const plannedEntry = toNumber(trade.planned_entry);
+  const plannedSl = toNumber(trade.planned_sl);
+  const filledEntry = toNumber(trade.filled_entry);
+  const filledExit = toNumber(trade.filled_exit);
+
+  if (
+    plannedEntry === null ||
+    plannedSl === null ||
+    filledEntry === null ||
+    filledExit === null
+  ) {
+    return null;
+  }
+
+  const risk = Math.abs(plannedEntry - plannedSl);
+
+  if (risk === 0) {
+    return null;
+  }
+
+  const pnl =
+    trade.side === "long" ? filledExit - filledEntry : filledEntry - filledExit;
+
+  return pnl / risk;
+}
+
 export type Trade = {
   id: string;
   user_id: string;
