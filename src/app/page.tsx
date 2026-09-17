@@ -2,13 +2,18 @@ import { redirect } from "next/navigation";
 import { signOut } from "@/app/actions/auth";
 import { PlaybookCard } from "@/components/playbook-card";
 import { SessionStrip } from "@/components/session-strip";
+import { TicketForm } from "@/components/ticket-form";
 import { TradesList } from "@/components/trades-list";
 import { getAuthClaims } from "@/lib/auth/session";
 import { listPlaybooks } from "@/lib/playbooks/list";
 import { ensureTodaySession } from "@/lib/sessions/ensure-today";
 import { listSessionTrades } from "@/lib/trades/list";
 
-export default async function Home() {
+type HomeProps = {
+  searchParams: Promise<{ error?: string }>;
+};
+
+export default async function Home({ searchParams }: HomeProps) {
   const claims = await getAuthClaims();
 
   if (!claims || typeof claims.sub !== "string") {
@@ -25,6 +30,7 @@ export default async function Home() {
   const { trades, error: tradesError } = session
     ? await listSessionTrades(session.id)
     : { trades: [], error: sessionError };
+  const { error } = await searchParams;
 
   return (
     <main className="mx-auto max-w-3xl p-6">
@@ -61,7 +67,17 @@ export default async function Home() {
 
       <section className="mt-10">
         <h2 className="text-lg font-medium text-mist">Tickets</h2>
-        <p className="mt-1 text-sm text-fog">Planned vs filled for this session.</p>
+        <p className="mt-1 text-sm text-fog">
+          Lock the plan before the click. Fill is optional.
+        </p>
+        {error ? (
+          <p className="mt-4 rounded-md border border-loss/30 bg-loss/10 px-3 py-2 text-sm text-loss">
+            {error}
+          </p>
+        ) : null}
+        {session ? (
+          <TicketForm sessionId={session.id} playbooks={playbooks} />
+        ) : null}
         {tradesError ? (
           <p className="mt-4 rounded-md border border-loss/30 bg-loss/10 px-3 py-2 text-sm text-loss">
             {tradesError}

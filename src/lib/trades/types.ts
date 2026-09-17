@@ -1,5 +1,23 @@
+export const TRADE_INSTRUMENTS = ["BTC", "ETH", "SOL"] as const;
+
+export type TradeInstrument = (typeof TRADE_INSTRUMENTS)[number];
 export type TradeSide = "long" | "short";
 export type TradeStatus = "planned" | "open" | "closed" | "skipped";
+
+export function tradeStatusFromFills(
+  filledEntry: number | null,
+  filledExit: number | null,
+): TradeStatus {
+  if (filledExit !== null) {
+    return "closed";
+  }
+
+  if (filledEntry !== null) {
+    return "open";
+  }
+
+  return "planned";
+}
 
 export type Trade = {
   id: string;
