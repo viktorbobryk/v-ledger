@@ -5,15 +5,37 @@ import {
   type TradingSession,
 } from "@/lib/sessions/defaults";
 
+const SESSION_COLUMNS =
+  "id, user_id, session_date, deposit, risk_percent, consecutive_losses, status, created_at";
+
 export async function ensureTodaySession(userId: string) {
   const supabase = await createClient();
   const sessionDate = utcToday();
+
+  const { data: latest, error: latestError } = await supabase
+    .from("sessions")
+    .select(SESSION_COLUMNS)
+    .eq("user_id", userId)
+    .order("session_date", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (latestError) {
+    return { session: null, error: latestError.message };
+  }
+
+  if (latest && latest.session_date === sessionDate) {
+    return { session: latest as TradingSession, error: null };
+  }
 
   const { error: seedError } = await supabase.from("sessions").upsert(
     {
       user_id: userId,
       session_date: sessionDate,
-      ...DEFAULT_SESSION,
+      deposit: latest?.deposit ?? DEFAULT_SESSION.deposit,
+      risk_percent: latest?.risk_percent ?? DEFAULT_SESSION.risk_percent,
+      consecutive_losses: DEFAULT_SESSION.consecutive_losses,
+      status: DEFAULT_SESSION.status,
     },
     { onConflict: "user_id,session_date", ignoreDuplicates: true },
   );
@@ -24,9 +46,7 @@ export async function ensureTodaySession(userId: string) {
 
   const { data, error } = await supabase
     .from("sessions")
-    .select(
-      "id, user_id, session_date, deposit, risk_percent, consecutive_losses, status, created_at",
-    )
+    .select(SESSION_COLUMNS)
     .eq("user_id", userId)
     .eq("session_date", sessionDate)
     .maybeSingle();
