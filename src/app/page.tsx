@@ -7,7 +7,10 @@ import { TradesList } from "@/components/trades-list";
 import { getAuthClaims } from "@/lib/auth/session";
 import { listPlaybooks } from "@/lib/playbooks/list";
 import { ensureTodaySession } from "@/lib/sessions/ensure-today";
-import { sessionRiskDollars } from "@/lib/sessions/defaults";
+import {
+  sessionRiskDollars,
+  sessionStatus,
+} from "@/lib/sessions/defaults";
 import { listSessionTrades } from "@/lib/trades/list";
 
 type HomeProps = {
@@ -35,6 +38,9 @@ export default async function Home({ searchParams }: HomeProps) {
   const riskDollars = session
     ? sessionRiskDollars(session.deposit, session.risk_percent)
     : null;
+  const isPaused = session
+    ? sessionStatus(session.consecutive_losses, session.status) === "pause"
+    : false;
 
   return (
     <main className="mx-auto max-w-3xl p-6">
@@ -81,7 +87,13 @@ export default async function Home({ searchParams }: HomeProps) {
           Lock the plan. Filled entry is the planned price. Skip if price never
           tagged it.
         </p>
-        {session ? (
+        {session && isPaused ? (
+          <p className="mt-4 rounded-md border border-loss/30 bg-loss/10 px-3 py-2 text-sm text-loss">
+            Session is paused after three losses. Close or skip open tickets.
+            No new locks today.
+          </p>
+        ) : null}
+        {session && !isPaused ? (
           <TicketForm
             sessionId={session.id}
             riskDollars={riskDollars}

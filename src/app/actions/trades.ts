@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { getAuthClaims } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
-import { PAUSE_AFTER_LOSSES } from "@/lib/sessions/defaults";
+import { PAUSE_AFTER_LOSSES, sessionStatus } from "@/lib/sessions/defaults";
 import {
   TRADE_INSTRUMENTS,
   plannedStopError,
@@ -77,13 +77,17 @@ export async function createTicket(formData: FormData) {
 
   const { data: session, error: sessionError } = await supabase
     .from("sessions")
-    .select("id")
+    .select("id, consecutive_losses, status")
     .eq("id", sessionId)
     .eq("user_id", userId)
     .maybeSingle();
 
   if (sessionError || !session) {
     fail(sessionError?.message ?? "Session not found.");
+  }
+
+  if (sessionStatus(session.consecutive_losses, session.status) === "pause") {
+    fail("Session is paused after three losses. No new tickets today.");
   }
 
   const { data: playbook, error: playbookError } = await supabase
