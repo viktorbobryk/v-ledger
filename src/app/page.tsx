@@ -7,6 +7,7 @@ import { TradesList } from "@/components/trades-list";
 import { getAuthClaims } from "@/lib/auth/session";
 import { listPlaybooks } from "@/lib/playbooks/list";
 import { ensureTodaySession } from "@/lib/sessions/ensure-today";
+import { sessionRiskDollars } from "@/lib/sessions/defaults";
 import { listSessionTrades } from "@/lib/trades/list";
 
 type HomeProps = {
@@ -31,6 +32,9 @@ export default async function Home({ searchParams }: HomeProps) {
     ? await listSessionTrades(session.id)
     : { trades: [], error: sessionError };
   const { error } = await searchParams;
+  const riskDollars = session
+    ? sessionRiskDollars(session.deposit, session.risk_percent)
+    : null;
 
   return (
     <main className="mx-auto max-w-3xl p-6">
@@ -78,14 +82,18 @@ export default async function Home({ searchParams }: HomeProps) {
           tagged it.
         </p>
         {session ? (
-          <TicketForm sessionId={session.id} playbooks={playbooks} />
+          <TicketForm
+            sessionId={session.id}
+            riskDollars={riskDollars}
+            playbooks={playbooks}
+          />
         ) : null}
         {tradesError ? (
           <p className="mt-4 rounded-md border border-loss/30 bg-loss/10 px-3 py-2 text-sm text-loss">
             {tradesError}
           </p>
         ) : (
-          <TradesList trades={trades} />
+          <TradesList trades={trades} riskDollars={riskDollars} />
         )}
       </section>
 

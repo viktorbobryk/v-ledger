@@ -43,6 +43,25 @@ export function sessionRiskError(
   return null;
 }
 
+export function sessionRiskDollars(
+  deposit: number | string | null | undefined,
+  riskPercent: number | string | null | undefined,
+) {
+  const parsedDeposit = Number(deposit);
+  const parsedRisk = Number(riskPercent);
+
+  if (
+    !Number.isFinite(parsedDeposit) ||
+    !Number.isFinite(parsedRisk) ||
+    parsedDeposit <= 0 ||
+    parsedRisk <= 0
+  ) {
+    return null;
+  }
+
+  return (parsedDeposit * parsedRisk) / 100;
+}
+
 export function sessionStatus(
   consecutiveLosses: number,
   stored: SessionStatus,

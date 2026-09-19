@@ -1,6 +1,7 @@
 import { updateSessionRisk } from "@/app/actions/sessions";
 import {
   PAUSE_AFTER_LOSSES,
+  sessionRiskDollars,
   sessionStatus,
   type TradingSession,
 } from "@/lib/sessions/defaults";
@@ -15,8 +16,7 @@ function formatNumber(value: number | string) {
 export function SessionStrip({ session }: { session: TradingSession }) {
   const status = sessionStatus(session.consecutive_losses, session.status);
   const isPause = status === "pause";
-  const riskUnit =
-    (Number(session.deposit) * Number(session.risk_percent)) / 100;
+  const riskUnit = sessionRiskDollars(session.deposit, session.risk_percent);
 
   return (
     <form
@@ -71,7 +71,7 @@ export function SessionStrip({ session }: { session: TradingSession }) {
             {session.consecutive_losses} / {PAUSE_AFTER_LOSSES}
           </p>
           <p className="mt-1 text-xs text-fog">
-            ${formatNumber(riskUnit)} per ticket
+            {riskUnit === null ? "—" : `$${formatNumber(riskUnit)}`} per ticket
           </p>
         </div>
       </div>

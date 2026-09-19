@@ -1,10 +1,12 @@
 "use client";
 
 import { useRef, useState } from "react";
-import type { Playbook } from "@/lib/playbooks/defaults";
 import { createTicket } from "@/app/actions/trades";
+import { TicketRiskReadout } from "@/components/ticket-risk-readout";
+import type { Playbook } from "@/lib/playbooks/defaults";
 import {
   plannedStopError,
+  stopDistance,
   toNumber,
   TRADE_INSTRUMENTS,
 } from "@/lib/trades/types";
@@ -14,6 +16,7 @@ const fieldClassName =
 
 type TicketFormProps = {
   sessionId: string;
+  riskDollars: number | null;
   playbooks: Playbook[];
 };
 
@@ -37,9 +40,14 @@ function stopErrorFromForm(form: HTMLFormElement) {
   );
 }
 
-export function TicketForm({ sessionId, playbooks }: TicketFormProps) {
+export function TicketForm({
+  sessionId,
+  riskDollars,
+  playbooks,
+}: TicketFormProps) {
   const stopRef = useRef<HTMLInputElement>(null);
   const [stopError, setStopError] = useState<string | null>(null);
+  const [distance, setDistance] = useState<number | null>(null);
 
   if (playbooks.length === 0) {
     return (
@@ -49,17 +57,24 @@ export function TicketForm({ sessionId, playbooks }: TicketFormProps) {
     );
   }
 
-  function syncStopValidity(form: HTMLFormElement) {
+  function syncPlanMetrics(form: HTMLFormElement) {
+    const data = new FormData(form);
     const error = stopErrorFromForm(form);
     setStopError(error);
     stopRef.current?.setCustomValidity(error ?? "");
+    setDistance(
+      stopDistance(
+        formNumber(data, "planned_entry"),
+        formNumber(data, "planned_sl"),
+      ),
+    );
   }
 
   return (
     <form
       action={createTicket}
-      onInput={(event) => syncStopValidity(event.currentTarget)}
-      onChange={(event) => syncStopValidity(event.currentTarget)}
+      onInput={(event) => syncPlanMetrics(event.currentTarget)}
+      onChange={(event) => syncPlanMetrics(event.currentTarget)}
       className="mt-5 rounded-xl border border-line bg-paper p-5"
     >
       <input type="hidden" name="session_id" value={sessionId} />
@@ -134,6 +149,9 @@ export function TicketForm({ sessionId, playbooks }: TicketFormProps) {
             className={fieldClassName}
           />
         </label>
+      </div>
+      <div className="mt-4">
+        <TicketRiskReadout riskDollars={riskDollars} distance={distance} />
       </div>
       <label className="mt-4 block text-sm text-fog">
         Notes

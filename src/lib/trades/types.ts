@@ -48,6 +48,20 @@ export function plannedStopError(
   return null;
 }
 
+export function stopDistance(
+  entry: number | string | null | undefined,
+  stop: number | string | null | undefined,
+) {
+  const plannedEntry = toNumber(entry);
+  const plannedSl = toNumber(stop);
+
+  if (plannedEntry === null || plannedSl === null) {
+    return null;
+  }
+
+  return Math.abs(plannedEntry - plannedSl);
+}
+
 export function realizedR(trade: {
   side: TradeSide;
   planned_entry: number | string | null;
