@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { getAuthClaims } from "@/lib/auth/session";
-import { sessionRiskError } from "@/lib/sessions/defaults";
+import { deskHref, sessionRiskError, utcToday } from "@/lib/sessions/defaults";
 import { createClient } from "@/lib/supabase/server";
 
 function getString(formData: FormData, key: string) {
@@ -21,8 +21,8 @@ function getNumber(formData: FormData, key: string) {
   return Number.isFinite(value) ? value : null;
 }
 
-function fail(message: string): never {
-  redirect(`/?error=${encodeURIComponent(message)}`);
+function fail(message: string, sessionDate?: string | null): never {
+  redirect(deskHref({ date: sessionDate, error: message }));
 }
 
 export async function updateSessionRisk(formData: FormData) {
@@ -47,6 +47,21 @@ export async function updateSessionRisk(formData: FormData) {
   }
 
   const supabase = await createClient();
+  const { data: session, error: sessionError } = await supabase
+    .from("sessions")
+    .select("id, session_date")
+    .eq("id", sessionId)
+    .eq("user_id", claims.sub)
+    .maybeSingle();
+
+  if (sessionError || !session) {
+    fail(sessionError?.message ?? "Session not found.");
+  }
+
+  if (String(session.session_date).slice(0, 10) !== utcToday()) {
+    fail("Risk can only be changed on today's session.", session.session_date);
+  }
+
   const { data, error } = await supabase
     .from("sessions")
     .update({

@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { signOut } from "@/app/actions/auth";
+import { AppHeader } from "@/components/app-header";
 import { PlaybookCard } from "@/components/playbook-card";
 import { SessionStrip } from "@/components/session-strip";
 import { TicketForm } from "@/components/ticket-form";
@@ -26,6 +26,7 @@ export default async function Home({ searchParams }: HomeProps) {
 
   const email =
     typeof claims.email === "string" ? claims.email : "signed in";
+  const { error } = await searchParams;
   const [{ playbooks, error: playbooksError }, { session, error: sessionError }] =
     await Promise.all([
       listPlaybooks(claims.sub),
@@ -34,7 +35,6 @@ export default async function Home({ searchParams }: HomeProps) {
   const { trades, error: tradesError } = session
     ? await listSessionTrades(session.id)
     : { trades: [], error: sessionError };
-  const { error } = await searchParams;
   const riskDollars = session
     ? sessionRiskDollars(session.deposit, session.risk_percent)
     : null;
@@ -44,20 +44,7 @@ export default async function Home({ searchParams }: HomeProps) {
 
   return (
     <main className="mx-auto max-w-3xl p-6">
-      <header className="flex items-center justify-between border-b border-line pb-4">
-        <p className="font-mono text-xs tracking-[0.28em] text-gold">V LEDGER</p>
-        <div className="flex items-center gap-3">
-          <p className="text-sm text-fog">{email}</p>
-          <form action={signOut}>
-            <button
-              type="submit"
-              className="rounded-md border border-line px-3 py-1.5 text-sm text-mist hover:border-gold hover:text-gold"
-            >
-              Log out
-            </button>
-          </form>
-        </div>
-      </header>
+      <AppHeader email={email} active="desk" />
 
       {error ? (
         <p className="mt-6 rounded-md border border-loss/30 bg-loss/10 px-3 py-2 text-sm text-loss">

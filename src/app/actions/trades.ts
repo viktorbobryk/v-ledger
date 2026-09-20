@@ -3,7 +3,12 @@
 import { redirect } from "next/navigation";
 import { getAuthClaims } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
-import { PAUSE_AFTER_LOSSES, sessionStatus } from "@/lib/sessions/defaults";
+import {
+  PAUSE_AFTER_LOSSES,
+  deskHref,
+  sessionStatus,
+  utcToday,
+} from "@/lib/sessions/defaults";
 import {
   TRADE_INSTRUMENTS,
   plannedStopError,
@@ -30,8 +35,8 @@ function getNumber(formData: FormData, key: string) {
   return Number.isFinite(value) ? value : null;
 }
 
-function fail(message: string): never {
-  redirect(`/?error=${encodeURIComponent(message)}`);
+function fail(message: string, sessionDate?: string | null): never {
+  redirect(deskHref({ date: sessionDate, error: message }));
 }
 
 export async function createTicket(formData: FormData) {
@@ -77,13 +82,17 @@ export async function createTicket(formData: FormData) {
 
   const { data: session, error: sessionError } = await supabase
     .from("sessions")
-    .select("id, consecutive_losses, status")
+    .select("id, consecutive_losses, status, session_date")
     .eq("id", sessionId)
     .eq("user_id", userId)
     .maybeSingle();
 
   if (sessionError || !session) {
     fail(sessionError?.message ?? "Session not found.");
+  }
+
+  if (String(session.session_date).slice(0, 10) !== utcToday()) {
+    fail("New tickets can only be locked today.", session.session_date);
   }
 
   if (sessionStatus(session.consecutive_losses, session.status) === "pause") {
@@ -119,7 +128,7 @@ export async function createTicket(formData: FormData) {
     fail(error.message);
   }
 
-  redirect("/");
+  redirect(deskHref({ date: session.session_date }));
 }
 
 async function requireUserId() {
@@ -159,6 +168,17 @@ export async function recordFill(formData: FormData) {
     fail("This ticket is already finished.");
   }
 
+  const { data: session, error: sessionError } = await supabase
+    .from("sessions")
+    .select("id, consecutive_losses, session_date")
+    .eq("id", trade.session_id)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (sessionError || !session) {
+    fail(sessionError?.message ?? "Session not found.");
+  }
+
   const filledEntry =
     toNumber(trade.filled_entry) ?? toNumber(trade.planned_entry);
   const filledExit =
@@ -193,41 +213,30 @@ export async function recordFill(formData: FormData) {
     .eq("user_id", userId);
 
   if (error) {
-    fail(error.message);
+    fail(error.message, session.session_date);
   }
 
   if (trade.status !== "closed" && status === "closed") {
-    const { data: session, error: sessionError } = await supabase
-      .from("sessions")
-      .select("id, consecutive_losses")
-      .eq("id", trade.session_id)
-      .eq("user_id", userId)
-      .maybeSingle();
-
-    if (sessionError || !session) {
-      fail(sessionError?.message ?? "Session not found.");
-    }
-
     const consecutiveLosses =
       r !== null && r < 0 ? session.consecutive_losses + 1 : 0;
-    const sessionStatus =
+    const nextStatus =
       consecutiveLosses >= PAUSE_AFTER_LOSSES ? "pause" : "trade";
 
     const { error: updateSessionError } = await supabase
       .from("sessions")
       .update({
         consecutive_losses: consecutiveLosses,
-        status: sessionStatus,
+        status: nextStatus,
       })
       .eq("id", session.id)
       .eq("user_id", userId);
 
     if (updateSessionError) {
-      fail(updateSessionError.message);
+      fail(updateSessionError.message, session.session_date);
     }
   }
 
-  redirect("/");
+  redirect(deskHref({ date: session.session_date }));
 }
 
 export async function skipTicket(formData: FormData) {
@@ -241,7 +250,7 @@ export async function skipTicket(formData: FormData) {
   const supabase = await createClient();
   const { data: trade, error: tradeError } = await supabase
     .from("trades")
-    .select("id, status")
+    .select("id, status, session_id")
     .eq("id", tradeId)
     .eq("user_id", userId)
     .maybeSingle();
@@ -269,5 +278,12 @@ export async function skipTicket(formData: FormData) {
     fail(error.message);
   }
 
-  redirect("/");
+  const { data: session } = await supabase
+    .from("sessions")
+    .select("session_date")
+    .eq("id", trade.session_id)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  redirect(deskHref({ date: session?.session_date }));
 }
