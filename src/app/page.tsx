@@ -6,6 +6,7 @@ import { TicketForm } from "@/components/ticket-form";
 import { TradesList } from "@/components/trades-list";
 import { getAuthClaims } from "@/lib/auth/session";
 import { listPlaybooks } from "@/lib/playbooks/list";
+import { listPlaybookStats } from "@/lib/playbooks/stats";
 import { ensureTodaySession } from "@/lib/sessions/ensure-today";
 import {
   sessionRiskDollars,
@@ -32,6 +33,10 @@ export default async function Home({ searchParams }: HomeProps) {
       listPlaybooks(claims.sub),
       ensureTodaySession(claims.sub),
     ]);
+  const { stats, error: statsError } = await listPlaybookStats(
+    claims.sub,
+    playbooks.map((playbook) => playbook.id),
+  );
   const { trades, error: tradesError } = session
     ? await listSessionTrades(session.id)
     : { trades: [], error: sessionError };
@@ -99,16 +104,20 @@ export default async function Home({ searchParams }: HomeProps) {
       <section className="mt-10">
         <h2 className="text-lg font-medium text-mist">Playbooks</h2>
         <p className="mt-1 text-sm text-fog">
-          The four setups from the TradingView desk.
+          Closed trades only. Win rate and average R by setup.
         </p>
-        {playbooksError ? (
+        {playbooksError || statsError ? (
           <p className="mt-4 rounded-md border border-loss/30 bg-loss/10 px-3 py-2 text-sm text-loss">
-            {playbooksError}
+            {playbooksError ?? statsError}
           </p>
         ) : (
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
             {playbooks.map((playbook) => (
-              <PlaybookCard key={playbook.id} playbook={playbook} />
+              <PlaybookCard
+                key={playbook.id}
+                playbook={playbook}
+                stats={stats.get(playbook.id)}
+              />
             ))}
           </div>
         )}
