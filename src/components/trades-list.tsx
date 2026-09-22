@@ -63,7 +63,7 @@ export function TradesList({
             <th className="px-4 py-3 font-medium">SL</th>
             <th className="px-4 py-3 font-medium">TP</th>
             <th className="px-4 py-3 font-medium">Filled</th>
-            <th className="px-4 py-3 font-medium">Risk / Stop</th>
+            <th className="px-4 py-3 font-medium">Risk / Stop / Qty</th>
             <th className="px-4 py-3 font-medium">R</th>
             <th className="px-4 py-3 font-medium">Notes</th>
           </tr>
@@ -102,6 +102,9 @@ export function TradesList({
                         trade.status === "skipped"
                           ? null
                           : stopDistance(trade.planned_entry, trade.planned_sl)
+                      }
+                      instrument={
+                        trade.status === "skipped" ? null : trade.instrument
                       }
                     />
                   </td>

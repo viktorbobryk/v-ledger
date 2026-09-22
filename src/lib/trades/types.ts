@@ -62,6 +62,22 @@ export function stopDistance(
   return Math.abs(plannedEntry - plannedSl);
 }
 
+export function positionQty(
+  riskDollars: number | null,
+  distance: number | null,
+) {
+  if (
+    riskDollars === null ||
+    distance === null ||
+    riskDollars <= 0 ||
+    distance <= 0
+  ) {
+    return null;
+  }
+
+  return riskDollars / distance;
+}
+
 export function realizedR(trade: {
   side: TradeSide;
   planned_entry: number | string | null;

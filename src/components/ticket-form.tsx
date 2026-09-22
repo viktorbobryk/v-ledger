@@ -48,6 +48,7 @@ export function TicketForm({
   const stopRef = useRef<HTMLInputElement>(null);
   const [stopError, setStopError] = useState<string | null>(null);
   const [distance, setDistance] = useState<number | null>(null);
+  const [instrument, setInstrument] = useState<string>(TRADE_INSTRUMENTS[0]);
 
   if (playbooks.length === 0) {
     return (
@@ -59,9 +60,15 @@ export function TicketForm({
 
   function syncPlanMetrics(form: HTMLFormElement) {
     const data = new FormData(form);
+    const selectedInstrument = data.get("instrument");
     const error = stopErrorFromForm(form);
     setStopError(error);
     stopRef.current?.setCustomValidity(error ?? "");
+    setInstrument(
+      typeof selectedInstrument === "string"
+        ? selectedInstrument
+        : TRADE_INSTRUMENTS[0],
+    );
     setDistance(
       stopDistance(
         formNumber(data, "planned_entry"),
@@ -151,7 +158,11 @@ export function TicketForm({
         </label>
       </div>
       <div className="mt-4">
-        <TicketRiskReadout riskDollars={riskDollars} distance={distance} />
+        <TicketRiskReadout
+          riskDollars={riskDollars}
+          distance={distance}
+          instrument={instrument}
+        />
       </div>
       <label className="mt-4 block text-sm text-fog">
         Notes
