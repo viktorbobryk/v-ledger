@@ -6,8 +6,9 @@ import { TradesList } from "@/components/trades-list";
 import { getAuthClaims } from "@/lib/auth/session";
 import {
   parseSessionDate,
+  sessionPnlDollars,
   sessionRiskDollars,
-  utcToday,
+  sessionToday,
 } from "@/lib/sessions/defaults";
 import { getSessionByDate } from "@/lib/sessions/list";
 import { listSessionTrades } from "@/lib/trades/list";
@@ -34,7 +35,7 @@ export default async function HistoryDatePage({
     notFound();
   }
 
-  if (date === utcToday()) {
+  if (date === sessionToday()) {
     redirect("/");
   }
 
@@ -51,6 +52,10 @@ export default async function HistoryDatePage({
   const riskDollars = session
     ? sessionRiskDollars(session.deposit, session.risk_percent)
     : null;
+  const pnlDollars = sessionPnlDollars(
+    trades.map((trade) => trade.realized_r),
+    riskDollars,
+  );
 
   return (
     <main className="mx-auto max-w-3xl p-6">
@@ -78,7 +83,7 @@ export default async function HistoryDatePage({
           </p>
         ) : (
           <div className="mt-5">
-            <SessionStrip session={session} readOnly />
+            <SessionStrip session={session} pnlDollars={pnlDollars} readOnly />
           </div>
         )}
       </section>

@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import {
   sessionDateOf,
+  sessionPnlDollars,
+  sessionRiskDollars,
   type TradingSession,
 } from "@/lib/sessions/defaults";
 
@@ -9,11 +11,14 @@ const SESSION_COLUMNS =
 
 export type SessionSummary = TradingSession & {
   ticket_count: number;
+  pnl_dollars: number | null;
 };
 
 function toSession(row: {
   session_date: string;
-  trades?: { count: number }[] | null;
+  deposit: number | string;
+  risk_percent: number | string;
+  trades?: { realized_r: number | string | null }[] | null;
 }): SessionSummary | null {
   const sessionDate = sessionDateOf(String(row.session_date));
 
@@ -21,12 +26,17 @@ function toSession(row: {
     return null;
   }
 
-  const countRow = Array.isArray(row.trades) ? row.trades[0] : null;
+  const trades = Array.isArray(row.trades) ? row.trades : [];
+  const riskDollars = sessionRiskDollars(row.deposit, row.risk_percent);
 
   return {
     ...(row as TradingSession),
     session_date: sessionDate,
-    ticket_count: Number(countRow?.count ?? 0),
+    ticket_count: trades.length,
+    pnl_dollars: sessionPnlDollars(
+      trades.map((trade) => trade.realized_r),
+      riskDollars,
+    ),
   };
 }
 
@@ -34,7 +44,7 @@ export async function listSessions(userId: string) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("sessions")
-    .select(`${SESSION_COLUMNS}, trades(count)`)
+    .select(`${SESSION_COLUMNS}, trades(realized_r)`)
     .eq("user_id", userId)
     .order("session_date", { ascending: false });
 

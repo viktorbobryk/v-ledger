@@ -1,6 +1,7 @@
 import { Fragment } from "react";
 import { TicketRiskReadout } from "@/components/ticket-risk-readout";
 import { TradeFillForm } from "@/components/trade-fill-form";
+import { ticketPnlDollars } from "@/lib/sessions/defaults";
 import { stopDistance, toNumber, type Trade } from "@/lib/trades/types";
 
 function filledEntryDisplay(trade: Trade) {
@@ -35,6 +36,15 @@ function formatR(value: number | string | null) {
   return `${sign}${parsed.toFixed(2)}R`;
 }
 
+function formatTicketPnl(value: number | null) {
+  if (value === null) {
+    return null;
+  }
+
+  const sign = value > 0 ? "+" : "";
+  return `${sign}$${value.toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
+}
+
 export function TradesList({
   trades,
   riskDollars,
@@ -64,13 +74,18 @@ export function TradesList({
             <th className="px-4 py-3 font-medium">TP</th>
             <th className="px-4 py-3 font-medium">Filled</th>
             <th className="px-4 py-3 font-medium">Risk / Stop / Qty</th>
-            <th className="px-4 py-3 font-medium">R</th>
+            <th className="px-4 py-3 font-medium">R / $</th>
             <th className="px-4 py-3 font-medium">Notes</th>
           </tr>
         </thead>
         <tbody>
           {trades.map((trade) => {
             const notes = formatNotes(trade.notes);
+            const ticketPnlLabel = formatTicketPnl(
+              trade.status === "skipped"
+                ? null
+                : ticketPnlDollars(trade.realized_r, riskDollars),
+            );
 
             return (
               <Fragment key={trade.id}>
@@ -110,6 +125,11 @@ export function TradesList({
                   </td>
                   <td className="px-4 py-3 font-mono text-mist">
                     {formatR(trade.realized_r)}
+                    {ticketPnlLabel ? (
+                      <span className="block text-xs text-fog">
+                        {ticketPnlLabel}
+                      </span>
+                    ) : null}
                   </td>
                   <td className="max-w-[12rem] px-4 py-3 text-fog">
                     {notes ? (

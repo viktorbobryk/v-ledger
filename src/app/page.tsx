@@ -9,6 +9,7 @@ import { listPlaybooks } from "@/lib/playbooks/list";
 import { listPlaybookStats } from "@/lib/playbooks/stats";
 import { ensureTodaySession } from "@/lib/sessions/ensure-today";
 import {
+  sessionPnlDollars,
   sessionRiskDollars,
   sessionStatus,
 } from "@/lib/sessions/defaults";
@@ -43,6 +44,10 @@ export default async function Home({ searchParams }: HomeProps) {
   const riskDollars = session
     ? sessionRiskDollars(session.deposit, session.risk_percent)
     : null;
+  const pnlDollars = sessionPnlDollars(
+    trades.map((trade) => trade.realized_r),
+    riskDollars,
+  );
   const isPaused = session
     ? sessionStatus(session.consecutive_losses, session.status) === "pause"
     : false;
@@ -60,7 +65,7 @@ export default async function Home({ searchParams }: HomeProps) {
       <section className="mt-8">
         <h1 className="text-lg font-medium text-mist">Today</h1>
         <p className="mt-1 text-sm text-fog">
-          Risk for the day. Pause after three losses.
+          Kyiv session day. Pause after three losses.
         </p>
         {sessionError || !session ? (
           <p className="mt-4 rounded-md border border-loss/30 bg-loss/10 px-3 py-2 text-sm text-loss">
@@ -68,7 +73,7 @@ export default async function Home({ searchParams }: HomeProps) {
           </p>
         ) : (
           <div className="mt-5">
-            <SessionStrip session={session} />
+            <SessionStrip session={session} pnlDollars={pnlDollars} />
           </div>
         )}
       </section>

@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import {
   DEFAULT_SESSION,
-  utcToday,
+  sessionToday,
   type TradingSession,
 } from "@/lib/sessions/defaults";
 
@@ -10,7 +10,7 @@ const SESSION_COLUMNS =
 
 export async function ensureTodaySession(userId: string) {
   const supabase = await createClient();
-  const sessionDate = utcToday();
+  const sessionDate = sessionToday();
 
   const { data: latest, error: latestError } = await supabase
     .from("sessions")

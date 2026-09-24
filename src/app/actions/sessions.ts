@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { getAuthClaims } from "@/lib/auth/session";
-import { deskHref, sessionRiskError, utcToday } from "@/lib/sessions/defaults";
+import { deskHref, sessionRiskError, sessionToday } from "@/lib/sessions/defaults";
 import { createClient } from "@/lib/supabase/server";
 
 function getString(formData: FormData, key: string) {
@@ -58,7 +58,7 @@ export async function updateSessionRisk(formData: FormData) {
     fail(sessionError?.message ?? "Session not found.");
   }
 
-  if (String(session.session_date).slice(0, 10) !== utcToday()) {
+  if (String(session.session_date).slice(0, 10) !== sessionToday()) {
     fail("Risk can only be changed on today's session.", session.session_date);
   }
 

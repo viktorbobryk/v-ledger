@@ -1,4 +1,7 @@
+import { toNumber } from "@/lib/trades/types";
+
 export const PAUSE_AFTER_LOSSES = 3;
+export const SESSION_TIME_ZONE = "Europe/Kyiv";
 
 export const DEFAULT_SESSION = {
   deposit: 200,
@@ -20,8 +23,29 @@ export type TradingSession = {
   created_at: string;
 };
 
-export function utcToday() {
-  return new Date().toISOString().slice(0, 10);
+function calendarDateInTimeZone(now: Date, timeZone: string) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(now);
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+
+  if (!year || !month || !day) {
+    return null;
+  }
+
+  return `${year}-${month}-${day}`;
+}
+
+export function sessionToday(now = new Date()) {
+  return (
+    calendarDateInTimeZone(now, SESSION_TIME_ZONE) ??
+    now.toISOString().slice(0, 10)
+  );
 }
 
 const SESSION_DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -56,7 +80,7 @@ export function parseSessionDate(value: string | undefined) {
 
 export function deskHref(options?: { date?: string | null; error?: string }) {
   const date = sessionDateOf(options?.date ?? undefined);
-  const today = utcToday();
+  const today = sessionToday();
   const params = new URLSearchParams();
 
   if (options?.error) {
@@ -109,6 +133,54 @@ export function sessionRiskDollars(
   }
 
   return (parsedDeposit * parsedRisk) / 100;
+}
+
+export function ticketPnlDollars(
+  realizedR: number | string | null | undefined,
+  riskDollars: number | null,
+) {
+  const parsedR = toNumber(realizedR);
+
+  if (parsedR === null || riskDollars === null) {
+    return null;
+  }
+
+  return parsedR * riskDollars;
+}
+
+export function sessionPnlDollars(
+  realizedRs: Array<number | string | null | undefined>,
+  riskDollars: number | null,
+) {
+  if (riskDollars === null) {
+    return null;
+  }
+
+  return realizedRs.reduce<number>((sum, value) => {
+    const pnl = ticketPnlDollars(value, riskDollars);
+    return pnl === null ? sum : sum + pnl;
+  }, 0);
+}
+
+export function sessionEquity(
+  deposit: number | string | null | undefined,
+  pnlDollars: number | null,
+) {
+  const parsedDeposit = Number(deposit);
+
+  if (!Number.isFinite(parsedDeposit) || pnlDollars === null) {
+    return null;
+  }
+
+  return parsedDeposit + pnlDollars;
+}
+
+export function pauseRiskDollars(riskDollars: number | null) {
+  if (riskDollars === null) {
+    return null;
+  }
+
+  return riskDollars * PAUSE_AFTER_LOSSES;
 }
 
 export function sessionStatus(

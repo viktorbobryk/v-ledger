@@ -7,7 +7,7 @@ import {
   PAUSE_AFTER_LOSSES,
   deskHref,
   sessionStatus,
-  utcToday,
+  sessionToday,
 } from "@/lib/sessions/defaults";
 import {
   TRADE_INSTRUMENTS,
@@ -91,7 +91,7 @@ export async function createTicket(formData: FormData) {
     fail(sessionError?.message ?? "Session not found.");
   }
 
-  if (String(session.session_date).slice(0, 10) !== utcToday()) {
+  if (String(session.session_date).slice(0, 10) !== sessionToday()) {
     fail("New tickets can only be locked today.", session.session_date);
   }
 

@@ -1,6 +1,8 @@
 import { updateSessionRisk } from "@/app/actions/sessions";
 import {
   PAUSE_AFTER_LOSSES,
+  pauseRiskDollars,
+  sessionEquity,
   sessionRiskDollars,
   sessionStatus,
   type TradingSession,
@@ -13,16 +15,33 @@ function formatNumber(value: number | string) {
   return Number(value).toLocaleString("en-US", { maximumFractionDigits: 2 });
 }
 
+function formatSignedMoney(value: number) {
+  const sign = value > 0 ? "+" : "";
+  return `${sign}$${formatNumber(value)}`;
+}
+
+function pnlClassName(value: number | null) {
+  if (value === null || value === 0) {
+    return "text-mist";
+  }
+
+  return value > 0 ? "text-gain" : "text-loss";
+}
+
 export function SessionStrip({
   session,
+  pnlDollars,
   readOnly = false,
 }: {
   session: TradingSession;
+  pnlDollars: number | null;
   readOnly?: boolean;
 }) {
   const status = sessionStatus(session.consecutive_losses, session.status);
   const isPause = status === "pause";
   const riskUnit = sessionRiskDollars(session.deposit, session.risk_percent);
+  const pauseDollars = pauseRiskDollars(riskUnit);
+  const equity = sessionEquity(session.deposit, pnlDollars);
 
   return (
     <form
@@ -35,7 +54,10 @@ export function SessionStrip({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="font-mono text-xs tracking-[0.2em] text-gold">SESSION</p>
-          <p className="mt-1 font-mono text-sm text-fog">{session.session_date}</p>
+          <p className="mt-1 font-mono text-sm text-fog">
+            {session.session_date}
+            <span className="text-fog/70"> · Kyiv</span>
+          </p>
         </div>
         <p
           className={`rounded-md px-2.5 py-1 font-mono text-xs tracking-[0.18em] uppercase ${
@@ -45,7 +67,7 @@ export function SessionStrip({
           {status}
         </p>
       </div>
-      <div className="mt-5 grid gap-4 sm:grid-cols-3">
+      <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {readOnly ? (
           <>
             <div>
@@ -93,12 +115,23 @@ export function SessionStrip({
           </>
         )}
         <div>
+          <p className="text-sm text-fog">Day P&L</p>
+          <p className={`mt-1.5 font-mono text-sm ${pnlClassName(pnlDollars)}`}>
+            {pnlDollars === null ? "—" : formatSignedMoney(pnlDollars)}
+          </p>
+          <p className="mt-1 text-xs text-fog">
+            {equity === null ? "—" : `Equity $${formatNumber(equity)}`}
+          </p>
+        </div>
+        <div>
           <p className="text-sm text-fog">Loss streak</p>
           <p className="mt-1.5 font-mono text-sm text-mist">
             {session.consecutive_losses} / {PAUSE_AFTER_LOSSES}
           </p>
           <p className="mt-1 text-xs text-fog">
-            {riskUnit === null ? "—" : `$${formatNumber(riskUnit)}`} per ticket
+            {riskUnit === null || pauseDollars === null
+              ? "—"
+              : `$${formatNumber(riskUnit)} / ticket · pause $${formatNumber(pauseDollars)}`}
           </p>
         </div>
       </div>
